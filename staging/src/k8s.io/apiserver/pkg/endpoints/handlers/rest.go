@@ -24,6 +24,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -438,6 +439,14 @@ func limitedReadBody(req *http.Request, limit int64) ([]byte, error) {
 	if limit <= 0 {
 		return ioutil.ReadAll(req.Body)
 	}
+
+	// Get Content-Length from header and compare with limit
+	if contentLength, err := strconv.Atoi(req.Header.Get("Content-Length")); err == nil {
+		if int64(contentLength) > limit {
+			return nil, errors.NewRequestEntityTooLargeError(fmt.Sprintf("limit is %d", limit))
+		}
+	}
+
 	lr := &io.LimitedReader{
 		R: req.Body,
 		N: limit + 1,
